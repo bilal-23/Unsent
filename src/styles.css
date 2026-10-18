@@ -1,0 +1,207 @@
+@import "tailwindcss";
+
+/* ---------- Design tokens ---------- */
+:root {
+  --bg: #f6f4f0;
+  --surface: #ffffff;
+  --surface-2: #efece6;
+  --ink: #1f2421;
+  --muted: #5b625d;
+  --line: #ddd8cf;
+  --accent: #3d6a5a;
+  --accent-ink: #ffffff;
+  --accent-soft: #e2ebe6;
+  --danger: #9a3f2b;
+  --danger-ink: #ffffff;
+  --focus: #2f5d8a;
+  --text-scale: 1;
+  --reading-font: var(--font-serif-stack);
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  --bg: #131615;
+  --surface: #1a1e1c;
+  --surface-2: #222826;
+  --ink: #e8e6e1;
+  --muted: #a4aba6;
+  --line: #2f3633;
+  --accent: #8fbcaa;
+  --accent-ink: #0e1412;
+  --accent-soft: #23312c;
+  --danger: #e3907a;
+  --danger-ink: #1a0f0b;
+  --focus: #9cc3f0;
+  color-scheme: dark;
+}
+
+/* Before JS resolves "system", follow the OS. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --bg: #131615;
+    --surface: #1a1e1c;
+    --surface-2: #222826;
+    --ink: #e8e6e1;
+    --muted: #a4aba6;
+    --line: #2f3633;
+    --accent: #8fbcaa;
+    --accent-ink: #0e1412;
+    --accent-soft: #23312c;
+    --danger: #e3907a;
+    --danger-ink: #1a0f0b;
+    --focus: #9cc3f0;
+    color-scheme: dark;
+  }
+}
+
+:root[data-text-size='sm'] { --text-scale: 0.9375; }
+:root[data-text-size='lg'] { --text-scale: 1.125; }
+:root[data-text-size='xl'] { --text-scale: 1.25; }
+:root[data-reading-font='sans'] { --reading-font: var(--font-sans-stack); }
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-soft: var(--accent-soft);
+  --color-danger: var(--danger);
+  --color-danger-ink: var(--danger-ink);
+  --font-sans: var(--font-sans-stack);
+  --font-serif: var(--reading-font);
+}
+
+:root {
+  --font-sans-stack: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-serif-stack: ui-serif, 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
+}
+
+/* ---------- Base ---------- */
+@layer base {
+  html {
+    font-size: calc(100% * var(--text-scale));
+    -webkit-text-size-adjust: 100%;
+    background: var(--bg);
+  }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-sans-stack);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100dvh;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+
+  ::selection {
+    background: var(--accent-soft);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+    }
+  }
+}
+
+/* ---------- Components ---------- */
+@layer components {
+  .card {
+    @apply rounded-2xl border border-line bg-surface p-4 sm:p-5;
+  }
+
+  .btn,
+  .btn-primary,
+  .btn-secondary,
+  .btn-ghost,
+  .btn-danger {
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-colors select-none disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply bg-accent text-accent-ink hover:opacity-90;
+  }
+  .btn-secondary {
+    @apply border border-line bg-surface text-ink hover:bg-surface-2;
+  }
+  .btn-ghost {
+    @apply text-ink hover:bg-surface-2;
+  }
+  .btn-danger {
+    @apply bg-danger text-danger-ink hover:opacity-90;
+  }
+  .btn-sm {
+    @apply min-h-9 px-3 py-1.5 text-sm;
+  }
+
+  .field {
+    @apply block w-full rounded-xl border border-line bg-surface px-3 py-2.5 text-base text-ink placeholder:text-muted/70;
+  }
+  .field:focus {
+    @apply border-accent outline-none;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent);
+  }
+  .label {
+    @apply mb-1.5 block text-sm font-medium text-ink;
+  }
+  .hint {
+    @apply text-sm text-muted;
+  }
+  .section-title {
+    @apply text-xs font-semibold tracking-wider text-muted uppercase;
+  }
+  .chip {
+    @apply inline-flex min-h-10 cursor-pointer items-center rounded-full border border-line bg-surface px-3.5 py-1.5 text-sm text-ink transition-colors hover:bg-surface-2;
+  }
+  .chip-selected {
+    @apply border-accent bg-accent-soft;
+  }
+  .link {
+    @apply text-accent underline decoration-1 underline-offset-4 hover:opacity-80;
+  }
+}
+
+/* Native dialog */
+dialog {
+  color: var(--ink);
+}
+dialog::backdrop {
+  background: rgb(0 0 0 / 0.45);
+}
+
+/* Privacy cover: shown whenever the app is in the background. */
+.privacy-cover-overlay {
+  display: none;
+}
+html.privacy-cover .privacy-cover-overlay {
+  display: flex;
+}
+
+/* Breathing circle (pause screen) */
+/* 4 seconds in, 6 seconds out */
+@keyframes breathe {
+  0% { transform: scale(0.6); }
+  40% { transform: scale(1); }
+  100% { transform: scale(0.6); }
+}
+.breathing-circle {
+  animation: breathe var(--breath-cycle, 10s) ease-in-out infinite;
+}
+
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}

@@ -1,0 +1,8 @@
+# Security headers for static hosts that support this file (Netlify, Cloudflare Pages).
+# Keep the CSP in sync with CONTENT_SECURITY_POLICY in vite.config.ts.
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self'; connect-src 'self'; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
+  Referrer-Policy: no-referrer
+  X-Content-Type-Options: nosniff
+  Permissions-Policy: camera=(), geolocation=(), microphone=(self), payment=(), usb=()
+  Cross-Origin-Opener-Policy: same-origin
