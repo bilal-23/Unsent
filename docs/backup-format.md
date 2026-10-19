@@ -1,4 +1,4 @@
-# Unsent backup format (schemaVersion 1)
+# Unsent backup format (schemaVersion 2)
 
 A backup is a UTF-8 JSON file named `unsent-backup-YYYY-MM-DD.json` (or `…-protected.json`). The authoritative definition is the Zod schema in [`src/services/backup/schema.ts`](../src/services/backup/schema.ts); this document mirrors it.
 
@@ -19,7 +19,7 @@ Unknown keys are rejected (strict objects). Files larger than 150 MB are refused
 ```json
 {
   "app": "unsent",
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "exportedAt": "2026-10-18T09:30:00.000Z",
   "data": {
     "settings": { … } | null,
@@ -33,7 +33,9 @@ Unknown keys are rejected (strict objects). Files larger than 150 MB are refused
     "lifeLog": [],
     "trackers": [],
     "exerciseEntries": [],
-    "voiceNotes": []
+    "voiceNotes": [],
+    "habits": [],
+    "habitLogs": []
   }
 }
 ```
@@ -71,7 +73,7 @@ Unknown keys are rejected (strict objects). Files larger than 150 MB are refused
 `id`, `kind` (`reason`/`coping`), `text`, `position` (integer ≥ 0), `createdAt`, `updatedAt`.
 
 ### plans
-`id`, `text`, `status` (`open`/`done`), `doneAt?`, `createdAt`, `updatedAt`.
+`id`, `text`, `status` (`open`/`done`), `doneAt?`, `position` (integer; lower comes first — the user's manual order), `createdAt`, `updatedAt`.
 
 ### lifeLog (good things)
 `id`, `kind` (`idea`/`moment`), `ideaId?` (built-in idea id), `text`, `localDate`, `photo?` `{ mimeType: image/jpeg|png|webp, width, height, data: base64 }`, `createdAt`, `updatedAt`.
@@ -82,8 +84,26 @@ Unknown keys are rejected (strict objects). Files larger than 150 MB are refused
 ### exerciseEntries
 `id`, `kind` (`program-day`/`thought-record`/`values`/`reality-check`/`letting-go`), `programId?`, `day?`, `fields` (object of string answers), `createdAt`, `updatedAt`.
 
+### habits
+`id`, `name`, `targetPerWeek` (1–7, the weekly goal), `position`, `archived`, `createdAt`, `updatedAt`.
+
+### habitLogs
+`id`, `habitId`, `localDate` — one per habit per day it was done (unique per file). `createdAt`.
+
 ### voiceNotes
 `id`, `title`, `mimeType` (`audio/…`), `durationMs`, `data` (base64), `createdAt`, `updatedAt`.
+
+## What is not included
+
+- **Recently deleted** entries (kept on the device for 30 days) are not exported: a deleted entry should not come back through a backup.
+- The app-lock key material is never exported.
+
+## Version history
+
+| version | change | migration from the previous version |
+| --- | --- | --- |
+| 1 | initial format | — |
+| 2 | plans gain `position`; `habits` and `habitLogs` added | existing plans are ordered newest first (`position` 0, 1, 2, …); habit collections start empty |
 
 ## Import rules
 
@@ -93,7 +113,7 @@ Unknown keys are rejected (strict objects). Files larger than 150 MB are refused
 4. Full schema validation; then duplicate ids within any collection, or two check-ins for one date, are rejected.
 5. Nothing is written until the user confirms.
 
-**Merge** — for the same `id`, the copy with the newer `updatedAt` wins (ties keep the local copy). Tracking history is append-only. A check-in with the same date but a different id: the newer one wins and the other is removed. Settings: newer wins. Preferences: local wins. Runs in one transaction.
+**Merge** — for the same `id`, the copy with the newer `updatedAt` wins (ties keep the local copy). Tracking history is append-only. Habit check-offs are a union: a day done on either device counts once. A check-in with the same date but a different id: the newer one wins and the other is removed. Settings: newer wins. Preferences: local wins. Runs in one transaction.
 
 **Replace** — after typed confirmation, every table is cleared and refilled in one transaction; any failure rolls everything back.
 

@@ -64,7 +64,7 @@ export default defineConfig({
     VitePWA({
       registerType: 'prompt',
       injectRegister: false,
-      includeAssets: ['favicon.svg', 'theme-init.js', 'apple-touch-icon.png'],
+      includeAssets: ['favicon.svg', 'theme-init.js', 'apple-touch-icon.png', 'sw-notifications.js'],
       manifest: {
         name: 'Unsent — Private Journal',
         short_name: 'Unsent',
@@ -91,6 +91,8 @@ export default defineConfig({
         cleanupOutdatedCaches: true,
         // Only build assets are cached. Personal data never goes through the service worker.
         runtimeCaching: [],
+        // Opens the app when a notification is tapped (public/sw-notifications.js).
+        importScripts: ['sw-notifications.js'],
       },
       devOptions: { enabled: false },
     }),

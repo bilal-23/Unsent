@@ -109,7 +109,7 @@ describe('validation', () => {
   })
 
   it('explains unsupported future versions', () => {
-    const result = parseBackupText(JSON.stringify({ app: 'unsent', schemaVersion: 2, exportedAt: '2026-10-18T00:00:00.000Z', data: {} }))
+    const result = parseBackupText(JSON.stringify({ app: 'unsent', schemaVersion: 99, exportedAt: '2026-10-18T00:00:00.000Z', data: {} }))
     expect(result).toMatchObject({ ok: false })
     expect(!result.ok && result.error).toMatch(/newer version/)
   })
@@ -155,6 +155,32 @@ describe('validation', () => {
 })
 
 describe('migrations', () => {
+  it('imports an early version-2 backup made before habits existed', async () => {
+    await seed(repos)
+    const file = JSON.parse(await exportText(repos))
+    delete file.data.habits
+    delete file.data.habitLogs
+    const backup = parsed(JSON.stringify(file))
+    expect(backup.data.habits).toEqual([])
+    expect(backup.data.habitLogs).toEqual([])
+  })
+
+  it('imports a version-1 backup: plans get an order, newest first', async () => {
+    await seed(repos)
+    const file = JSON.parse(await exportText(repos))
+    file.schemaVersion = 1
+    file.data.plans = [
+      { id: crypto.randomUUID(), text: 'Older', status: 'open', createdAt: '2026-10-01T00:00:00.000Z', updatedAt: '2026-10-01T00:00:00.000Z' },
+      { id: crypto.randomUUID(), text: 'Newer', status: 'done', doneAt: '2026-10-06T00:00:00.000Z', createdAt: '2026-10-05T00:00:00.000Z', updatedAt: '2026-10-06T00:00:00.000Z' },
+    ]
+    const backup = parsed(JSON.stringify(file))
+    expect(backup.schemaVersion).toBe(1)
+    expect(backup.data.plans.map((p) => [p.text, p.position])).toEqual([
+      ['Older', 1],
+      ['Newer', 0],
+    ])
+  })
+
   it('runs each step from the file version up to the current one', () => {
     const steps = { 1: (d: unknown) => ({ ...(d as object), v2: true }), 2: (d: unknown) => ({ ...(d as object), v3: true }) }
     expect(migrateBackupData({ a: 1 }, 1, steps, 3)).toEqual({ a: 1, v2: true, v3: true })

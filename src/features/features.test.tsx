@@ -72,7 +72,7 @@ describe('urges', () => {
     await user.click(screen.getAllByRole('radio', { name: '6' })[0])
     await user.click(screen.getByRole('button', { name: 'Save' }))
     expect(await screen.findByText('Noted.')).toBeInTheDocument()
-    expect(screen.getByText(/I want peace/)).toBeInTheDocument()
+    expect(await screen.findByText(/I want peace/)).toBeInTheDocument()
     expect((await repos.urges.list())[0]).toMatchObject({ intensity: 6, trigger: undefined })
   })
 })
@@ -120,14 +120,16 @@ describe('message editor', () => {
     expect(document.querySelectorAll('a[href^="mailto:"], a[href^="sms:"], a[href*="wa.me"]')).toHaveLength(0)
   })
 
-  it('requires confirmation before deleting', async () => {
+  it('deletes without a scary dialog, offers Undo, and keeps it in Recently deleted', async () => {
     const repos = await withSetup()
-    const message = await repos.messages.create({ title: 'x', body: 'y', tags: [] })
+    const message = await repos.messages.create({ title: 'Letter', body: 'y', tags: [] })
     const { user } = renderApp(repos, `/unsent/${message.id}`)
     await user.click(await screen.findByRole('button', { name: 'Delete' }))
-    expect(await repos.messages.get(message.id)).toBeDefined()
-    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete permanently' }))
     await waitFor(async () => expect(await repos.messages.get(message.id)).toBeUndefined())
+    expect(screen.queryByRole('dialog')).toBeNull()
+    await user.click(await screen.findByRole('button', { name: 'Undo' }))
+    await waitFor(async () => expect((await repos.messages.get(message.id))?.title).toBe('Letter'))
+    expect(await repos.trash.count()).toBe(0)
   })
 })
 
@@ -145,5 +147,119 @@ describe('settings', () => {
     await user.click(confirm)
     await waitFor(async () => expect(await repos.tracking.get()).toBeUndefined())
     expect(await repos.messages.list()).toHaveLength(0)
+  })
+})
+
+describe('recently deleted', () => {
+  it('restores an entry, and deleting for good needs confirmation', async () => {
+    const repos = await withSetup()
+    const urge = await repos.urges.create({ intensity: 7, trigger: 'Loneliness' })
+    const plan = await repos.plans.add('Learn guitar')
+    await repos.urges.delete(urge.id)
+    await repos.plans.delete(plan.id)
+    const { user } = renderApp(repos, '/deleted')
+    expect(await screen.findByText('Learn guitar')).toBeInTheDocument()
+    expect(screen.getByText('Intensity 7/10 · Loneliness')).toBeInTheDocument()
+    expect(screen.getAllByText(/30 days left/)).toHaveLength(2)
+
+    const urgeCard = screen.getByText('Intensity 7/10 · Loneliness').closest('li')!
+    await user.click(within(urgeCard).getByRole('button', { name: 'Restore' }))
+    await waitFor(async () => expect(await repos.urges.get(urge.id)).toBeDefined())
+
+    await user.click(screen.getByRole('button', { name: 'Delete now' }))
+    const dialog = screen.getByRole('dialog', { name: 'Delete this for good?' })
+    await user.click(within(dialog).getByRole('button', { name: 'Delete permanently' }))
+    await waitFor(async () => expect(await repos.trash.count()).toBe(0))
+    expect(await repos.plans.list()).toHaveLength(0)
+  })
+})
+
+describe('search everywhere', () => {
+  it('finds words across messages, urges, check-ins and good things — but never sealed letters', async () => {
+    const repos = await withSetup()
+    await repos.messages.create({ title: 'Letter', body: 'I miss the lake house', tags: [] })
+    const sealed = await repos.messages.create({ title: 'Later', body: 'lake secrets', tags: [] })
+    await repos.messages.seal(sealed.id, addDays(today(), 10))
+    await repos.urges.create({ intensity: 6, note: 'Drove past the lake' })
+    await repos.checkIns.saveForDate(today(), { mood: 4, reflection: 'Swam in the LAKE' })
+    await repos.lifeLog.addMoment('Picnic by the lake', today())
+    await repos.plans.add('Kayak on the lake')
+
+    const { user } = renderApp(repos, '/search')
+    await user.type(await screen.findByRole('searchbox', { name: 'Search everything' }), 'lake')
+    expect(await screen.findByText('5 results')).toBeInTheDocument()
+    expect(screen.queryByText(/secrets/)).toBeNull()
+    expect(screen.getAllByText((_, el) => el?.tagName === 'MARK' && /lake/i.test(el.textContent ?? '')).length).toBeGreaterThanOrEqual(5)
+
+    await user.click(screen.getByRole('button', { name: /^Urges/ }))
+    expect(screen.getByText('1 result')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /Drove past the/ })).toHaveAttribute('href', expect.stringContaining('/urges/'))
+  })
+})
+
+describe('message tags', () => {
+  it('filters the list by tag', async () => {
+    const repos = await withSetup()
+    await repos.messages.create({ title: 'Summer', body: 'a', tags: ['memories'] })
+    await repos.messages.create({ title: 'Anger', body: 'b', tags: ['vent'] })
+    await repos.messages.create({ title: 'Beach', body: 'c', tags: ['Memories', 'vent'] })
+    const { user } = renderApp(repos, '/unsent')
+    const filter = await screen.findByRole('group', { name: 'Filter by tag' })
+    await user.click(within(filter).getByRole('button', { name: /#memories 2/i }))
+    expect(screen.getByRole('link', { name: /Summer/ })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /Beach/ })).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /Anger/ })).toBeNull()
+  })
+})
+
+describe('plans and good things editing', () => {
+  it('reorders plans', async () => {
+    const repos = await withSetup()
+    await repos.plans.add('First')
+    await repos.plans.add('Second')
+    const { user } = renderApp(repos, '/journal/plans')
+    await user.click(await screen.findByRole('button', { name: 'Move "First" up' }))
+    await waitFor(async () => expect((await repos.plans.list()).map((p) => p.text)).toEqual(['First', 'Second']))
+  })
+
+  it('edits a good thing’s words and day', async () => {
+    const repos = await withSetup()
+    await repos.lifeLog.addMoment('Coffee', today())
+    const { user } = renderApp(repos, '/journal/good-things')
+    await user.click(await screen.findByRole('button', { name: 'Edit' }))
+    const text = screen.getByLabelText('Good thing')
+    await user.clear(text)
+    await user.type(text, 'Coffee with Sam')
+    const day = screen.getByLabelText('Day')
+    await user.clear(day)
+    await user.type(day, addDays(today(), -1))
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+    await waitFor(async () => expect((await repos.lifeLog.list())[0]).toMatchObject({ text: 'Coffee with Sam', localDate: addDays(today(), -1) }))
+  })
+})
+
+describe('help notes', () => {
+  it('explains a screen, can be dismissed, and comes back from the (i) button', async () => {
+    const repos = await withSetup()
+    const { user } = renderApp(repos, '/urges')
+    const note = await screen.findByRole('complementary', { name: 'About Urges' })
+    expect(within(note).getByText(/only the intensity is needed/i)).toBeInTheDocument()
+    await user.click(within(note).getByRole('button', { name: 'Got it' }))
+    expect(screen.queryByRole('complementary', { name: 'About Urges' })).toBeNull()
+    await user.click(screen.getByRole('button', { name: 'What is this?' }))
+    expect(screen.getByRole('complementary', { name: 'About Urges' })).toBeInTheDocument()
+  })
+})
+
+describe('habits', () => {
+  it('adds a habit with a weekly goal and ticks today from Home', async () => {
+    const repos = await withSetup()
+    await repos.habits.add({ name: 'Read', targetPerWeek: 3 })
+    const { user } = renderApp(repos, '/')
+    const tick = await screen.findByRole('checkbox', { name: 'Read today' })
+    expect(screen.getByText('This week: 0 of 3 — a fresh start')).toBeInTheDocument()
+    await user.click(tick)
+    expect(await screen.findByText('This week: 1 of 3')).toBeInTheDocument()
+    expect(document.body.textContent).not.toMatch(/streak|failed|missed/i)
   })
 })

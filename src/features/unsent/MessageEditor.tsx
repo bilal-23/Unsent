@@ -12,6 +12,7 @@ import { addDays, daysBetween, formatLocalDate, formatTimestamp, isValidLocalDat
 import { isReadyToOpen, isSealed } from '../../domain/sealing'
 import type { UnsentMessage } from '../../domain/types'
 import { useMessage, usePersonalItems, usePreferences } from '../../hooks/useData'
+import { useDeleteWithUndo } from '../../hooks/useDeleteWithUndo'
 import { useToday } from '../../hooks/useToday'
 import { t } from '../../i18n'
 import { AutosaveController, type AutosaveStatus } from '../../lib/AutosaveController'
@@ -131,6 +132,7 @@ function Editor({ editorKey, initial }: { editorKey: string; initial: UnsentMess
   const today = useToday()
   const preferences = usePreferences()
   const reasons = usePersonalItems('reason')
+  const deleteWithUndo = useDeleteWithUndo()
   const shadowEnabled = !repos.lock.isEnabled()
 
   const [liveId, setLiveId] = useState<string | null>(initial?.id ?? null)
@@ -147,7 +149,6 @@ function Editor({ editorKey, initial }: { editorKey: string; initial: UnsentMess
     shadowEnabled ? readShadow(STORAGE_KEYS.draft(initial?.id ?? editorKey), initial ? toDraft(initial) : null) : null,
   )
   const [openedLetter] = useState<string | null>(() => (initial && isReadyToOpen(initial, today) ? (initial.sealedAt ?? '') : null))
-  const [confirmDelete, setConfirmDelete] = useState(false)
   const [sealOpen, setSealOpen] = useState(false)
   const [confirmOpenEarly, setConfirmOpenEarly] = useState(false)
   const [reasonsDismissed, setReasonsDismissed] = useState(false)
@@ -351,7 +352,21 @@ function Editor({ editorKey, initial }: { editorKey: string; initial: UnsentMess
                 <Icon name="lock" />
               </button>
             )}
-            <button type="button" className="btn-ghost px-2.5" aria-label={t('Delete')} title={t('Delete')} onClick={() => setConfirmDelete(true)}>
+            <button
+              type="button"
+              className="btn-ghost px-2.5"
+              aria-label={t('Delete')}
+              title={t('Delete')}
+              onClick={async () => {
+                // Save the latest words first, so Undo brings back exactly what was on screen.
+                await controller.flush()
+                deletingRef.current = true
+                controller.resume({ discardPending: true })
+                removeKey('sessionStorage', STORAGE_KEYS.draft(id))
+                if (await deleteWithUndo(() => repos.messages.delete(id), t('Message moved to Recently deleted.'))) navigate('/unsent', { replace: true })
+                else deletingRef.current = false
+              }}
+            >
               <Icon name="trash" />
             </button>
           </div>
@@ -497,25 +512,6 @@ function Editor({ editorKey, initial }: { editorKey: string; initial: UnsentMess
         </p>
       )}
 
-      <ConfirmDialog
-        open={confirmDelete}
-        title={t('Delete this message?')}
-        confirmLabel={t('Delete permanently')}
-        danger
-        onCancel={() => setConfirmDelete(false)}
-        onConfirm={async () => {
-          if (!id) return
-          deletingRef.current = true
-          controller.resume({ discardPending: true })
-          removeKey('sessionStorage', STORAGE_KEYS.draft(id))
-          await repos.messages.delete(id)
-          setConfirmDelete(false)
-          toast(t('Message deleted.'))
-          navigate('/unsent', { replace: true })
-        }}
-      >
-        <p>{t('It will be permanently removed from this device. This cannot be undone.')}</p>
-      </ConfirmDialog>
 
       {sealOpen && (
         <SealDialog

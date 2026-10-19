@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { useRepos } from '../../app/repos'
-import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { Icon } from '../../components/Icon'
 import { PageHeader } from '../../components/PageHeader'
 import { PromptHelper } from '../../components/PromptHelper'
@@ -12,6 +11,7 @@ import { ENERGY_LABELS, MOOD_LABELS, MOOD_MAX } from '../../domain/constants'
 import { daysBetween, formatLocalDate, isValidLocalDate } from '../../domain/dates'
 import type { DailyCheckIn } from '../../domain/types'
 import { useCheckInForDate, usePreferences } from '../../hooks/useData'
+import { useDeleteWithUndo } from '../../hooks/useDeleteWithUndo'
 import { useToday } from '../../hooks/useToday'
 import { t } from '../../i18n'
 
@@ -33,7 +33,7 @@ function CheckInFormBody({ localDate, today, initial }: { localDate: string; tod
   const navigate = useNavigate()
   const toast = useToast()
   const preferences = usePreferences()
-  const existing = { value: initial }
+  const deleteWithUndo = useDeleteWithUndo()
 
   const [mood, setMood] = useState<number | undefined>(initial?.mood)
   const [energy, setEnergy] = useState<number | undefined>(initial?.energy)
@@ -41,7 +41,6 @@ function CheckInFormBody({ localDate, today, initial }: { localDate: string; tod
   const [personalWin, setPersonalWin] = useState(initial?.personalWin ?? '')
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
-  const [confirmDelete, setConfirmDelete] = useState(false)
 
   const isEdit = !!initial
 
@@ -53,7 +52,10 @@ function CheckInFormBody({ localDate, today, initial }: { localDate: string; tod
         subtitle={t('Only mood is needed. Everything else is optional.')}
         actions={
           isEdit && (
-            <button type="button" className="btn-ghost px-2.5" aria-label={t('Delete check-in')} onClick={() => setConfirmDelete(true)}>
+            <button type="button" className="btn-ghost px-2.5" aria-label={t('Delete check-in')} onClick={async () => {
+                if (initial && (await deleteWithUndo(() => repos.checkIns.delete(initial.id), t('Check-in moved to Recently deleted.')))) navigate('/journal', { replace: true })
+              }}
+            >
               <Icon name="trash" />
             </button>
           )
@@ -128,21 +130,6 @@ function CheckInFormBody({ localDate, today, initial }: { localDate: string; tod
           {mood === undefined ? t('Choose a mood to save') : t('Save check-in')}
         </button>
       </form>
-      <ConfirmDialog
-        open={confirmDelete}
-        title={t('Delete this check-in?')}
-        confirmLabel={t('Delete permanently')}
-        danger
-        onCancel={() => setConfirmDelete(false)}
-        onConfirm={async () => {
-          if (existing.value) await repos.checkIns.delete(existing.value.id)
-          setConfirmDelete(false)
-          toast(t('Check-in deleted.'))
-          navigate('/journal', { replace: true })
-        }}
-      >
-        <p>{t('Only this check-in will be removed.')}</p>
-      </ConfirmDialog>
     </div>
   )
 }

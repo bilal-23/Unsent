@@ -95,3 +95,23 @@ export function useVoiceNotes() {
   const repos = useRepos()
   return useLiveQuery(() => repos.voiceNotes.list(), [repos])
 }
+
+export function useTrash() {
+  const repos = useRepos()
+  return useLiveQuery(() => repos.trash.list(), [repos])
+}
+
+export function useTrashCount() {
+  const repos = useRepos()
+  return useLiveQuery(() => repos.trash.count(), [repos])
+}
+
+export function useHabits() {
+  const repos = useRepos()
+  return useLiveQuery(() => repos.habits.list(), [repos])
+}
+
+export function useHabitLogs() {
+  const repos = useRepos()
+  return useLiveQuery(() => repos.habits.listLogs(), [repos])
+}

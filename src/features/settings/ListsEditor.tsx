@@ -3,6 +3,7 @@ import { useRepos } from '../../app/repos'
 import { Icon } from '../../components/Icon'
 import type { PersonalItemKind } from '../../domain/types'
 import { usePersonalItems } from '../../hooks/useData'
+import { useDeleteWithUndo } from '../../hooks/useDeleteWithUndo'
 import { t } from '../../i18n'
 
 const COPY: Record<PersonalItemKind, { title: string; hint: string; placeholder: string }> = {
@@ -21,6 +22,7 @@ const COPY: Record<PersonalItemKind, { title: string; hint: string; placeholder:
 export function ListEditor({ kind }: { kind: PersonalItemKind }) {
   const repos = useRepos()
   const items = usePersonalItems(kind)
+  const deleteWithUndo = useDeleteWithUndo()
   const [text, setText] = useState('')
   const copy = COPY[kind]
 
@@ -44,7 +46,8 @@ export function ListEditor({ kind }: { kind: PersonalItemKind }) {
             >
               <Icon name="down" className="size-4" />
             </button>
-            <button type="button" className="btn-ghost btn-sm px-1.5" aria-label={t('Remove "{text}"', { text: item.text })} onClick={() => void repos.personalItems.delete(item.id)}>
+            <button type="button" className="btn-ghost btn-sm px-1.5" aria-label={t('Remove "{text}"', { text: item.text })} onClick={() => void deleteWithUndo(() => repos.personalItems.delete(item.id), t('Removed. You can undo this.'))}
+            >
               <Icon name="x" className="size-4" />
             </button>
           </li>

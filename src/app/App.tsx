@@ -4,7 +4,10 @@ import { AppShell } from '../components/AppShell'
 import { Toaster } from '../components/Toaster'
 import { UpdateBanner } from '../components/UpdateBanner'
 import { Home } from '../features/dashboard/Home'
+import { Help } from '../features/help/Help'
+import { RecentlyDeleted } from '../features/deleted/RecentlyDeleted'
 import { CheckInForm } from '../features/journal/CheckInForm'
+import { Habits } from '../features/habits/Habits'
 import { GoodThings } from '../features/journal/GoodThings'
 import { JournalLayout } from '../features/journal/JournalLayout'
 import { CheckInList } from '../features/journal/CheckInList'
@@ -14,6 +17,9 @@ import { Welcome } from '../features/onboarding/Welcome'
 import { Patterns } from '../features/patterns/Patterns'
 import { Pause } from '../features/pause/Pause'
 import { Privacy } from '../features/privacy/Privacy'
+import { CheckBackNotifier } from '../features/reminders/CheckBackNotifier'
+import { Reminders } from '../features/reminders/Reminders'
+import { Search } from '../features/search/Search'
 import { ExerciseForm } from '../features/programs/ExerciseForm'
 import { ProgramDay } from '../features/programs/ProgramDay'
 import { Programs } from '../features/programs/Programs'
@@ -65,6 +71,7 @@ function Guarded({ children }: { children: ReactNode }) {
 
   return (
     <AppShell privacyCover={preferences.privacyCover}>
+      <CheckBackNotifier enabled={preferences.notifyCheckBack} />
       {children}
     </AppShell>
   )
@@ -85,6 +92,7 @@ export function AppRoutes() {
           <Route index element={<CheckInList />} />
           <Route path="good-things" element={<GoodThings />} />
           <Route path="plans" element={<Plans />} />
+          <Route path="habits" element={<Habits />} />
         </Route>
         <Route path="/journal/check-in/:date" element={<CheckInForm />} />
         <Route path="/pause" element={<Pause />} />
@@ -95,6 +103,10 @@ export function AppRoutes() {
         <Route path="/trackers" element={<Trackers />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/privacy" element={<Privacy />} />
+        <Route path="/search" element={<Search />} />
+        <Route path="/reminders" element={<Reminders />} />
+        <Route path="/help" element={<Help />} />
+        <Route path="/deleted" element={<RecentlyDeleted />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Guarded>

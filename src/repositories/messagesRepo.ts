@@ -1,4 +1,5 @@
 import type { UnsentDatabase } from '../db/database'
+import { moveToTrash } from './trashRepo'
 import { guard, StorageError } from '../db/errors'
 import { nowIso } from '../domain/dates'
 import { newId } from '../domain/ids'
@@ -88,7 +89,8 @@ export function createMessagesRepo(db: UnsentDatabase) {
     /** Opens a sealed letter (early or on its date). The seal date is cleared. */
     unseal: (id: string) => mutate(id, () => ({ sealedUntil: undefined })),
 
-    delete: (id: string) => guard(() => db.messages.delete(id)),
+    /** Moves to "Recently deleted"; returns the trash entry id for Undo. */
+    delete: (id: string) => moveToTrash(db, 'messages', id),
 
     /** Removes a message only when it has no title and no body (abandoned new draft). */
     deleteIfEmpty: (id: string) =>

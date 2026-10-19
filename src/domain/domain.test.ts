@@ -87,8 +87,8 @@ describe('good things', () => {
     { id: 'l2', kind: 'moment', text: 'Coffee with Sam', localDate: '2026-10-10', createdAt: 'x', updatedAt: 'x' },
   ]
   const plans: Plan[] = [
-    { id: 'p1', text: 'Book a pottery class', status: 'done', doneAt: new Date(2026, 9, 18, 12).toISOString(), createdAt: 'x', updatedAt: 'x' },
-    { id: 'p2', text: 'Learn guitar', status: 'open', createdAt: 'x', updatedAt: 'x' },
+    { id: 'p1', text: 'Book a pottery class', status: 'done', doneAt: new Date(2026, 9, 18, 12).toISOString(), position: 0, createdAt: 'x', updatedAt: 'x' },
+    { id: 'p2', text: 'Learn guitar', status: 'open', position: 1, createdAt: 'x', updatedAt: 'x' },
   ]
   const checkIns: DailyCheckIn[] = [
     { id: 'c1', localDate: '2026-10-16', mood: 3, personalWin: 'Cooked dinner', createdAt: 'x', updatedAt: 'x' },
@@ -177,6 +177,8 @@ describe('planMerge', () => {
     trackers: [],
     exerciseEntries: [],
     voiceNotes: [],
+    habits: [],
+    habitLogs: [],
   }
   const incomingBase: BackupData = { ...empty, settings: null, preferences: null }
   const t1 = '2026-10-01T10:00:00.000Z'

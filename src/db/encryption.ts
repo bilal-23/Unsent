@@ -23,7 +23,22 @@ export const ENCRYPTED_FIELDS: Record<string, readonly string[]> = {
   trackers: ['name'],
   exerciseEntries: ['fields'],
   voiceNotes: ['title', 'data'],
+  habits: ['name'],
 }
+
+/**
+ * Fields to encrypt for one stored row. "Recently deleted" rows wrap a record from
+ * another table, so their fields come from that table, under `record.`.
+ */
+export function fieldsForRow(table: string, row: unknown): readonly string[] | undefined {
+  if (table !== 'trash') return ENCRYPTED_FIELDS[table]
+  const source = typeof row === 'object' && row !== null ? (row as { table?: unknown }).table : undefined
+  const fields = typeof source === 'string' ? ENCRYPTED_FIELDS[source] : undefined
+  return fields?.map((field) => `record.${field}`) ?? []
+}
+
+/** Tables that may hold encrypted fields. */
+export const ENCRYPTED_TABLES = new Set([...Object.keys(ENCRYPTED_FIELDS), 'trash'])
 
 interface EncryptedValue {
   __enc: 1
@@ -59,7 +74,9 @@ function decryptValue(key: Uint8Array, value: EncryptedValue): unknown {
 }
 
 function mapField(record: Record<string, unknown>, path: string, fn: (value: unknown) => unknown): Record<string, unknown> {
-  const [head, tail] = path.split('.') as [string, string | undefined]
+  const dot = path.indexOf('.')
+  const head = dot === -1 ? path : path.slice(0, dot)
+  const tail = dot === -1 ? undefined : path.slice(dot + 1)
   if (!(head in record) || record[head] === undefined) return record
   if (!tail) return { ...record, [head]: fn(record[head]) }
   const inner = record[head]
@@ -142,9 +159,8 @@ export function encryptionMiddleware(controller: EncryptionController): Middlewa
         ...down,
         table(name: string): DBCoreTable {
           const table = down.table(name)
-          const fields = ENCRYPTED_FIELDS[name]
-          if (!fields) return table
-          const decrypt = (value: unknown) => decryptRecord(value, fields, controller.currentKey)
+          if (!ENCRYPTED_TABLES.has(name)) return table
+          const decrypt = (value: unknown) => decryptRecord(value, fieldsForRow(name, value) ?? [], controller.currentKey)
           return {
             ...table,
             mutate(req) {
@@ -154,7 +170,7 @@ export function encryptionMiddleware(controller: EncryptionController): Middlewa
               if (req.type === 'put' && (req.changeSpec || ('updates' in req && req.updates))) {
                 throw new Error('Partial updates are not supported on encrypted tables; use put() with full records.')
               }
-              return table.mutate({ ...req, values: req.values.map((value) => encryptRecord(value, fields, key)) })
+              return table.mutate({ ...req, values: req.values.map((value) => encryptRecord(value, fieldsForRow(name, value) ?? [], key)) })
             },
             get: (req) => table.get(req).then(decrypt),
             getMany: (req) => table.getMany(req).then((values) => values.map(decrypt)),

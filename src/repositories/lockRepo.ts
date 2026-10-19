@@ -1,6 +1,6 @@
-import { userTables, type UnsentDatabase } from '../db/database'
+import { localTables, type UnsentDatabase } from '../db/database'
 import { deriveKey, KDF_ITERATIONS, KEY_BYTES, open, randomBytes, seal } from '../db/crypto'
-import { ENCRYPTED_FIELDS } from '../db/encryption'
+import { ENCRYPTED_TABLES } from '../db/encryption'
 import { guard, StorageError } from '../db/errors'
 import { nowIso } from '../domain/dates'
 import { SINGLETON_ID, type Keyring } from '../domain/types'
@@ -55,7 +55,7 @@ export function createLockRepo(db: UnsentDatabase) {
 
   /** Re-writes every encrypted-capable table through the middleware (encrypting or decrypting). */
   const rewriteAll = async () => {
-    const tables = userTables(db).filter((table) => ENCRYPTED_FIELDS[table.name])
+    const tables = localTables(db).filter((table) => ENCRYPTED_TABLES.has(table.name))
     for (const table of tables) {
       const rows = await table.toArray()
       if (rows.length) await (table as typeof db.messages).bulkPut(rows as never[])
@@ -91,7 +91,7 @@ export function createLockRepo(db: UnsentDatabase) {
       controller.encryptWrites = true
       try {
         await guard(() =>
-          db.transaction('rw', [...userTables(db), db.keyring], async () => {
+          db.transaction('rw', [...localTables(db), db.keyring], async () => {
             await rewriteAll()
             await db.keyring.put(keyring)
           }),
@@ -112,7 +112,7 @@ export function createLockRepo(db: UnsentDatabase) {
       controller.encryptWrites = false
       try {
         await guard(() =>
-          db.transaction('rw', [...userTables(db), db.keyring], async () => {
+          db.transaction('rw', [...localTables(db), db.keyring], async () => {
             await rewriteAll()
             await db.keyring.delete(SINGLETON_ID)
           }),

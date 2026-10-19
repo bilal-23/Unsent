@@ -35,7 +35,9 @@ const SECTIONS: { title: string; body: string[] }[] = [
   {
     title: 'Permissions',
     body: [
-      'Unsent asks for the microphone only when you choose to record a voice note, and only while recording. It does not use notifications, location or contacts.',
+      'Unsent asks for the microphone only when you choose to record a voice note, and only while recording.',
+      'It asks to show notifications only if you turn on check-back notifications in Reminders. Notifications never contain anything you wrote. Calendar reminders are files you add to your own calendar — the reminder text is stored there, so keep it neutral.',
+      'It does not use location or contacts.',
     ],
   },
 ]

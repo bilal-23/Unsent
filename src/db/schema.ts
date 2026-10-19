@@ -32,6 +32,55 @@ export const SCHEMA_VERSIONS: readonly SchemaVersion[] = [
       keyring: 'id',
     },
   },
+  {
+    // v2: "Recently deleted" (trash) table; plans gain a manual `position`.
+    version: 2,
+    stores: {
+      settings: 'id',
+      preferences: 'id',
+      trackingHistory: 'id, changedAt',
+      messages: 'id, updatedAt, createdAt, status, *tags',
+      urges: 'id, createdAt',
+      checkIns: 'id, &localDate, createdAt',
+      personalItems: 'id, kind',
+      plans: 'id, status, createdAt',
+      lifeLog: 'id, localDate, createdAt',
+      trackers: 'id, createdAt',
+      exerciseEntries: 'id, kind, createdAt, [programId+day]',
+      voiceNotes: 'id, createdAt',
+      keyring: 'id',
+      trash: 'id, deletedAt, table',
+    },
+    // Existing plans keep their old order (newest first). Only plaintext fields are touched,
+    // so this works even when the app lock is on.
+    upgrade: async (tx) => {
+      const plans = await tx.table('plans').toArray()
+      plans.sort((a: { createdAt: string }, b: { createdAt: string }) => b.createdAt.localeCompare(a.createdAt))
+      await Promise.all(plans.map((plan: { id: string }, index: number) => tx.table('plans').update(plan.id, { position: index })))
+    },
+  },
+  {
+    // v3: habits with a weekly goal, and one check-off per habit per day.
+    version: 3,
+    stores: {
+      settings: 'id',
+      preferences: 'id',
+      trackingHistory: 'id, changedAt',
+      messages: 'id, updatedAt, createdAt, status, *tags',
+      urges: 'id, createdAt',
+      checkIns: 'id, &localDate, createdAt',
+      personalItems: 'id, kind',
+      plans: 'id, status, createdAt',
+      lifeLog: 'id, localDate, createdAt',
+      trackers: 'id, createdAt',
+      exerciseEntries: 'id, kind, createdAt, [programId+day]',
+      voiceNotes: 'id, createdAt',
+      keyring: 'id',
+      trash: 'id, deletedAt, table',
+      habits: 'id, createdAt',
+      habitLogs: 'id, &[habitId+localDate], habitId, localDate',
+    },
+  },
 ]
 
 export const LATEST_SCHEMA_VERSION = SCHEMA_VERSIONS[SCHEMA_VERSIONS.length - 1].version

@@ -2,12 +2,15 @@ import { Dexie, type EntityTable } from 'dexie'
 import type {
   DailyCheckIn,
   ExerciseEntry,
+  Habit,
+  HabitLog,
   Keyring,
   LifeLogEntry,
   PersonalItem,
   Plan,
   Preferences,
   Tracker,
+  TrashEntry,
   TrackingHistory,
   TrackingSettings,
   UnsentMessage,
@@ -34,6 +37,9 @@ export type UnsentDatabase = Dexie & {
   exerciseEntries: EntityTable<ExerciseEntry, 'id'>
   voiceNotes: EntityTable<VoiceNote, 'id'>
   keyring: EntityTable<Keyring, 'id'>
+  trash: EntityTable<TrashEntry, 'id'>
+  habits: EntityTable<Habit, 'id'>
+  habitLogs: EntityTable<HabitLog, 'id'>
 }
 
 export function createDatabase(name: string = DEFAULT_DB_NAME): UnsentDatabase {
@@ -44,7 +50,7 @@ export function createDatabase(name: string = DEFAULT_DB_NAME): UnsentDatabase {
   return db
 }
 
-/** Every table that holds user data; used by export and replace-import. (The keyring is not user data.) */
+/** Tables that are exported in backups. (Neither the keyring nor "Recently deleted" is exported.) */
 export function userTables(db: UnsentDatabase) {
   return [
     db.settings,
@@ -59,5 +65,12 @@ export function userTables(db: UnsentDatabase) {
     db.trackers,
     db.exerciseEntries,
     db.voiceNotes,
+    db.habits,
+    db.habitLogs,
   ]
+}
+
+/** Every table holding the user's records, including "Recently deleted": cleared by replace and clear-all, re-encrypted by the app lock. */
+export function localTables(db: UnsentDatabase) {
+  return [...userTables(db), db.trash]
 }

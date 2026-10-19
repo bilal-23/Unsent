@@ -1,4 +1,5 @@
 import type { UnsentDatabase } from '../db/database'
+import { moveToTrash } from './trashRepo'
 import { guard, StorageError } from '../db/errors'
 import { nowIso } from '../domain/dates'
 import { newId } from '../domain/ids'
@@ -63,7 +64,8 @@ export function createUrgesRepo(db: UnsentDatabase) {
         followUpAt: followUpIntensity === undefined ? undefined : nowIso(),
       })),
 
-    delete: (id: string) => guard(() => db.urges.delete(id)),
+    /** Moves to "Recently deleted"; returns the trash entry id for Undo. */
+    delete: (id: string) => moveToTrash(db, 'urges', id),
   }
 }
 

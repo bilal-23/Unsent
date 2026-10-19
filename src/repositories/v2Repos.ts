@@ -1,4 +1,5 @@
 import type { UnsentDatabase } from '../db/database'
+import { moveToTrash } from './trashRepo'
 import { guard, StorageError } from '../db/errors'
 import { nowIso } from '../domain/dates'
 import { newId } from '../domain/ids'
@@ -37,7 +38,8 @@ export function createTrackersRepo(db: UnsentDatabase) {
 
     update: (id: string, change: Partial<Pick<Tracker, 'name' | 'startDate' | 'intentionDays' | 'archived'>>) => update(id, change),
 
-    delete: (id: string) => guard(() => db.trackers.delete(id)),
+    /** Moves to "Recently deleted"; returns the trash entry id for Undo. */
+    delete: (id: string) => moveToTrash(db, 'trackers', id),
   }
 }
 
@@ -78,7 +80,8 @@ export function createExercisesRepo(db: UnsentDatabase) {
         }),
       ),
 
-    delete: (id: string) => guard(() => db.exerciseEntries.delete(id)),
+    /** Moves to "Recently deleted"; returns the trash entry id for Undo. */
+    delete: (id: string) => moveToTrash(db, 'exerciseEntries', id),
   }
 }
 
@@ -116,7 +119,8 @@ export function createVoiceNotesRepo(db: UnsentDatabase) {
         }),
       ),
 
-    delete: (id: string) => guard(() => db.voiceNotes.delete(id)),
+    /** Moves to "Recently deleted"; returns the trash entry id for Undo. */
+    delete: (id: string) => moveToTrash(db, 'voiceNotes', id),
   }
 }
 

@@ -21,6 +21,8 @@ export function snapshotToBackupData(snapshot: LocalSnapshot): BackupData {
     trackers: snapshot.trackers,
     exerciseEntries: snapshot.exerciseEntries,
     voiceNotes: snapshot.voiceNotes,
+    habits: snapshot.habits,
+    habitLogs: snapshot.habitLogs,
   }
 }
 

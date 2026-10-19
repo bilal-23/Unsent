@@ -14,7 +14,7 @@ test.describe('Journey D — backup and restore', () => {
     const file = testInfo.outputPath('backup.json')
     await download.saveAs(file)
     const json = JSON.parse(await readFile(file, 'utf8'))
-    expect(json).toMatchObject({ app: 'unsent', schemaVersion: 1 })
+    expect(json).toMatchObject({ app: 'unsent', schemaVersion: 2 })
     await expect(page.getByText('Last backup: today')).toBeVisible()
 
     // A fresh browser context is a new device with empty storage.

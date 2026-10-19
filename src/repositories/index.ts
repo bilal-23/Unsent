@@ -2,12 +2,14 @@ import { createDatabase, type UnsentDatabase } from '../db/database'
 import { createCheckInsRepo } from './checkInsRepo'
 import { createConnection } from './connection'
 import { createDataRepo } from './dataRepo'
+import { createHabitsRepo } from './habitsRepo'
 import { createLifeLogRepo, createPlansRepo } from './lifeRepo'
 import { createLockRepo } from './lockRepo'
 import { createMessagesRepo } from './messagesRepo'
 import { createPersonalItemsRepo } from './personalItemsRepo'
 import { createPreferencesRepo } from './preferencesRepo'
 import { createTrackingRepo } from './trackingRepo'
+import { createTrashRepo } from './trashRepo'
 import { createUrgesRepo } from './urgesRepo'
 import { createExercisesRepo, createTrackersRepo, createVoiceNotesRepo } from './v2Repos'
 
@@ -26,6 +28,8 @@ export function createRepos(db: UnsentDatabase = createDatabase()) {
     exercises: createExercisesRepo(db),
     voiceNotes: createVoiceNotesRepo(db),
     lock: createLockRepo(db),
+    trash: createTrashRepo(db),
+    habits: createHabitsRepo(db),
     data: createDataRepo(db),
   }
 }

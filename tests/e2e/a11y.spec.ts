@@ -2,7 +2,7 @@ import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
 import { onboard, writeMessage } from './helpers'
 
-const ROUTES = ['/#/', '/#/unsent', '/#/urges/new', '/#/journal', '/#/journal/check-in/today', '/#/journal/good-things', '/#/settings', '/#/patterns', '/#/programs', '/#/privacy']
+const ROUTES = ['/#/', '/#/unsent', '/#/urges/new', '/#/journal', '/#/journal/check-in/today', '/#/journal/good-things', '/#/journal/habits', '/#/journal/plans', '/#/search', '/#/deleted', '/#/reminders', '/#/help', '/#/settings', '/#/patterns', '/#/programs', '/#/privacy']
 
 test.describe('accessibility', () => {
   test.skip(({ browserName }) => browserName !== 'chromium', 'Axe results are browser-independent; run once')

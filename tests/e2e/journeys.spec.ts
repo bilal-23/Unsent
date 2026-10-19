@@ -35,7 +35,7 @@ test.describe('Journey B — unsent messages', () => {
     await expect(page.getByPlaceholder('Title (optional)')).toHaveValue('To you')
   })
 
-  test('archive, restore, search and delete with confirmation', async ({ page }) => {
+  test('archive, restore, search, delete with Undo and restore from Recently deleted', async ({ page }) => {
     await onboard(page)
     await writeMessage(page, { title: 'Summer', body: 'about the lake' })
     await writeMessage(page, { title: 'Winter', body: 'about the snow' })
@@ -55,10 +55,21 @@ test.describe('Journey B — unsent messages', () => {
 
     await page.getByRole('link', { name: /Summer/ }).click()
     await page.getByRole('button', { name: 'Delete' }).click()
-    await expect(page.getByRole('dialog')).toContainText('cannot be undone')
-    await page.getByRole('button', { name: 'Delete permanently' }).click()
     await expect(page).toHaveURL(/#\/unsent$/)
     await expect(page.getByRole('link', { name: /Summer/ })).toHaveCount(0)
+    await page.getByRole('button', { name: 'Undo' }).click()
+    await page.getByRole('searchbox').fill('')
+    await expect(page.getByRole('link', { name: /Summer/ })).toBeVisible()
+
+    // Delete again, then restore from Recently deleted.
+    await page.getByRole('link', { name: /Summer/ }).click()
+    await page.getByRole('button', { name: 'Delete' }).click()
+    await page.getByRole('link', { name: 'Recently deleted' }).click()
+    await expect(page.getByText('30 days left')).toBeVisible()
+    await page.getByRole('button', { name: 'Restore' }).click()
+    await expect(page.getByText('Nothing here.', { exact: false })).toBeVisible()
+    await nav(page, 'Unsent').click()
+    await expect(page.getByRole('link', { name: /Summer/ })).toBeVisible()
   })
 
   test('there is no way to send a message', async ({ page }) => {

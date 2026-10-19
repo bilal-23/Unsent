@@ -1,11 +1,11 @@
-import { userTables, type UnsentDatabase } from '../db/database'
+import { localTables, userTables, type UnsentDatabase } from '../db/database'
 import { guard } from '../db/errors'
 import type { BackupData, LocalSnapshot, MergePlan } from '../domain/backup'
 import { SINGLETON_ID } from '../domain/types'
 
 export function createDataRepo(db: UnsentDatabase) {
   const readSnapshot = async (): Promise<LocalSnapshot> => {
-    const [settings, preferences, trackingHistory, messages, urges, checkIns, personalItems, plans, lifeLog, trackers, exerciseEntries, voiceNotes] =
+    const [settings, preferences, trackingHistory, messages, urges, checkIns, personalItems, plans, lifeLog, trackers, exerciseEntries, voiceNotes, habits, habitLogs] =
       await Promise.all([
       db.settings.get(SINGLETON_ID),
       db.preferences.get(SINGLETON_ID),
@@ -19,8 +19,10 @@ export function createDataRepo(db: UnsentDatabase) {
       db.trackers.toArray(),
       db.exerciseEntries.toArray(),
       db.voiceNotes.toArray(),
+      db.habits.toArray(),
+      db.habitLogs.toArray(),
     ])
-    return { settings, preferences, trackingHistory, messages, urges, checkIns, personalItems, plans, lifeLog, trackers, exerciseEntries, voiceNotes }
+    return { settings, preferences, trackingHistory, messages, urges, checkIns, personalItems, plans, lifeLog, trackers, exerciseEntries, voiceNotes, habits, habitLogs }
   }
 
   return {
@@ -49,15 +51,17 @@ export function createDataRepo(db: UnsentDatabase) {
           await db.trackers.bulkPut(put.trackers)
           await db.exerciseEntries.bulkPut(put.exerciseEntries)
           await db.voiceNotes.bulkPut(put.voiceNotes)
+          await db.habits.bulkPut(put.habits)
+          await db.habitLogs.bulkPut(put.habitLogs)
           return plan
         }),
       ),
 
-    /** Replaces all local data atomically: on any failure the original data is untouched. */
+    /** Replaces all local data (and empties "Recently deleted") atomically: on any failure the original data is untouched. */
     replaceAll: (data: BackupData) =>
       guard(() =>
-        db.transaction('rw', userTables(db), async () => {
-          await Promise.all(userTables(db).map((table) => table.clear()))
+        db.transaction('rw', localTables(db), async () => {
+          await Promise.all(localTables(db).map((table) => table.clear()))
           if (data.settings) await db.settings.add(data.settings)
           if (data.preferences) await db.preferences.add(data.preferences)
           await db.trackingHistory.bulkAdd(data.trackingHistory)
@@ -70,14 +74,16 @@ export function createDataRepo(db: UnsentDatabase) {
           await db.trackers.bulkAdd(data.trackers)
           await db.exerciseEntries.bulkAdd(data.exerciseEntries)
           await db.voiceNotes.bulkAdd(data.voiceNotes)
+          await db.habits.bulkAdd(data.habits)
+          await db.habitLogs.bulkAdd(data.habitLogs)
         }),
       ),
 
     /** Deletes every local record, including the app-lock keyring. */
     clearAll: () =>
       guard(() =>
-        db.transaction('rw', [...userTables(db), db.keyring], () =>
-          Promise.all([...userTables(db), db.keyring].map((table) => table.clear())),
+        db.transaction('rw', [...localTables(db), db.keyring], () =>
+          Promise.all([...localTables(db), db.keyring].map((table) => table.clear())),
         ),
       ),
   }

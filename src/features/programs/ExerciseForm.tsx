@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { useRepos } from '../../app/repos'
-import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { Icon } from '../../components/Icon'
 import { PageHeader } from '../../components/PageHeader'
 import { useToast } from '../../components/Toaster'
 import { EXERCISES, isStandaloneKind } from '../../domain/programs'
 import { useExerciseEntries } from '../../hooks/useData'
+import { useDeleteWithUndo } from '../../hooks/useDeleteWithUndo'
 import { t } from '../../i18n'
 import { cleanFields, type StandaloneExerciseKind } from '../../domain/programs'
 import { FieldsForm } from './FieldsForm'
@@ -29,7 +29,7 @@ function ExerciseFormBody({ kind, id, initial }: { kind: StandaloneExerciseKind;
   const toast = useToast()
   const isNew = id === 'new'
   const [values, setValues] = useState<Record<string, string>>(initial)
-  const [confirmDelete, setConfirmDelete] = useState(false)
+  const deleteWithUndo = useDeleteWithUndo()
   const exercise = EXERCISES[kind]
 
   return (
@@ -39,7 +39,10 @@ function ExerciseFormBody({ kind, id, initial }: { kind: StandaloneExerciseKind;
         back="/programs"
         actions={
           !isNew && (
-            <button type="button" className="btn-ghost px-2.5" aria-label={t('Delete')} onClick={() => setConfirmDelete(true)}>
+            <button type="button" className="btn-ghost px-2.5" aria-label={t('Delete')} onClick={async () => {
+                if (await deleteWithUndo(() => repos.exercises.delete(id), t('Exercise moved to Recently deleted.'))) navigate('/programs', { replace: true })
+              }}
+            >
               <Icon name="trash" />
             </button>
           )
@@ -63,21 +66,6 @@ function ExerciseFormBody({ kind, id, initial }: { kind: StandaloneExerciseKind;
           {t('Save')}
         </button>
       </form>
-      <ConfirmDialog
-        open={confirmDelete}
-        title={t('Delete this exercise?')}
-        confirmLabel={t('Delete permanently')}
-        danger
-        onCancel={() => setConfirmDelete(false)}
-        onConfirm={async () => {
-          await repos.exercises.delete(id)
-          setConfirmDelete(false)
-          toast(t('Deleted.'))
-          navigate('/programs', { replace: true })
-        }}
-      >
-        <p>{t('It will be permanently removed from this device.')}</p>
-      </ConfirmDialog>
     </div>
   )
 }

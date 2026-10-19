@@ -9,11 +9,15 @@ An offline-first Progressive Web App for people maintaining no contact. Write me
 | Area | What it does |
 | --- | --- |
 | Home | Calendar-day count since last contact, optional gentle intention ("Day 12 of 30", no failure state), "I had contact" that keeps every entry, today's idea, recent activity. With *fade mode*, Home gradually leads with your life instead of the counter. |
-| Unsent | Drafts with autosave (500 ms debounce, `Saving… / Saved / Unable to save`), search, archive, sealed letters that stay closed until a date, voice notes. No send or share affordance exists. |
+| Unsent | Drafts with autosave (500 ms debounce, `Saving… / Saved / Unable to save`), search, tag filters, archive, sealed letters that stay closed until a date, voice notes (recorded as MP4/AAC where supported so they play on any device). No send or share affordance exists. |
 | Urges | Log in seconds (intensity only is required), optional trigger/emotion/note, your own reasons and coping list afterwards, a 60/90-second breathing pause, optional in-app check-back, follow-up ratings. |
-| Journal | One check-in per day, a Good things log (wins, finished plans, done ideas, moments with photos), and Plans. |
+| Journal | One check-in per day, a Good things log (wins, finished plans, done ideas, moments with photos — all editable), Habits with a weekly goal (gym 3× a week, read daily — tick days off, no streaks), and Plans you can reorder. |
 | Programs | A 28-day "Rebuilding" program and standalone exercises (thought record, values check, reality check, letting-go letter). |
 | Patterns | Quiet charts of your own entries. No scores, no predictions. |
+| Reminders | Calendar reminders: Unsent builds a repeating `.ics` event your phone's calendar notifies you about, even when the app is closed — no server. Optional system notifications for the urge check-back while the app is running. |
+| Help | Every screen has a short, dismissible "what is this for" note (bring it back with the (i) button), plus a Help page covering every feature. |
+| Search | One search across messages, urge notes, check-ins, good things, plans, exercises, voice-note titles and your lists. Accent- and case-insensitive, highlighted matches, never searches sealed letters; the query is never put in the URL or stored. Press `/` on a keyboard. |
+| Recently deleted | Deleting moves an entry here with an **Undo** button instead of an "Are you sure?" dialog. Entries can be restored for 30 days, then are removed for good (deleting from here asks for confirmation). Encrypted like everything else when the app lock is on; not included in backups. |
 | Settings | Last-contact date, lists, trackers for other habits, display options, app lock (encryption at rest), backup/restore, storage status, delete all data. |
 
 ## Run it

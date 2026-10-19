@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useEffect, type ReactNode } from 'react'
 import { NavLink, useNavigate } from 'react-router'
 import { useOnline } from '../hooks/useOnline'
 import { usePrivacyCover } from '../hooks/usePrivacyCover'
@@ -60,9 +60,26 @@ function ReflectionBanner() {
   )
 }
 
+/** "/" opens search, unless the user is typing somewhere. */
+function useSearchShortcut() {
+  const navigate = useNavigate()
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== '/' || event.metaKey || event.ctrlKey || event.altKey) return
+      const target = event.target as HTMLElement | null
+      if (target?.closest('input, textarea, select, [contenteditable="true"]')) return
+      event.preventDefault()
+      navigate('/search')
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [navigate])
+}
+
 export function AppShell({ children, privacyCover, banners }: { children: ReactNode; privacyCover: boolean; banners?: ReactNode }) {
   const online = useOnline()
   usePrivacyCover(privacyCover)
+  useSearchShortcut()
 
   return (
     <div className="min-h-dvh md:flex">
@@ -82,6 +99,16 @@ export function AppShell({ children, privacyCover, banners }: { children: ReactN
         <nav aria-label={t('Main')} className="flex flex-col gap-1">
           <NavItems variant="rail" />
         </nav>
+        <NavLink
+          to="/search"
+          className={({ isActive }) =>
+            `mt-4 flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-medium ${isActive ? 'bg-accent-soft text-ink' : 'text-muted hover:bg-surface-2 hover:text-ink'}`
+          }
+        >
+          <Icon name="search" className="size-5" />
+          <span className="flex-1">{t('Search')}</span>
+          <kbd className="rounded border border-line px-1.5 text-xs text-muted">/</kbd>
+        </NavLink>
       </aside>
 
       <div className="min-w-0 flex-1">

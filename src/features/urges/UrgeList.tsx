@@ -2,6 +2,7 @@ import { Link } from 'react-router'
 import { EmptyState } from '../../components/EmptyState'
 import { Icon } from '../../components/Icon'
 import { PageHeader } from '../../components/PageHeader'
+import { SearchButton } from '../../components/SearchButton'
 import { formatTimestamp } from '../../domain/dates'
 import { useUrges } from '../../hooks/useData'
 import { t } from '../../i18n'
@@ -12,13 +13,17 @@ export function UrgeList() {
     <div>
       <PageHeader
         title={t('Urges')}
+        helpId="urges"
         subtitle={t('Noticing an urge is not acting on it.')}
         actions={
+          <>
+          <SearchButton />
           <Link to="/urges/new" className="btn-primary">
             <Icon name="plus" />
             <span className="hidden sm:inline">{t('Log an urge')}</span>
             <span className="sr-only sm:hidden">{t('Log an urge')}</span>
           </Link>
+          </>
         }
       />
       {!urges ? (

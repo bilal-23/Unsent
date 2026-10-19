@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react'
 import { Link } from 'react-router'
 import { useRepos } from '../../app/repos'
 import { Icon } from '../../components/Icon'
+import { HelpButton, HelpNote } from '../../components/HelpNote'
+import { SearchButton } from '../../components/SearchButton'
 import { collectGoodThings } from '../../domain/goodThings'
 import { addDays, daysBetween, intentionStatus, localDateOf, noContactStatus } from '../../domain/dates'
 import { fadeStage, type FadeStage } from '../../domain/fade'
@@ -17,6 +19,7 @@ import { IntentionDialog } from './IntentionDialog'
 import { OnThisDay } from './OnThisDay'
 import { TodayIdea } from './TodayIdea'
 import { TrackerCards } from './TrackerCards'
+import { HabitsToday } from '../habits/HabitsToday'
 
 function QuickActions({ checkedInToday, compact }: { checkedInToday: boolean; compact: boolean }) {
   const base = compact ? 'btn-secondary justify-start' : 'btn-secondary min-h-14 justify-start text-base'
@@ -42,9 +45,15 @@ function Greeting({ settings }: { settings: TrackingSettings }) {
   const hour = new Date().getHours()
   const greeting = hour < 5 ? t('Good night') : hour < 12 ? t('Good morning') : hour < 18 ? t('Good afternoon') : t('Good evening')
   return (
-    <div className="mb-2">
-      <h1 className="font-serif text-3xl text-ink">{greeting}</h1>
-      {settings.journalName && <p className="hint mt-1">{settings.journalName}</p>}
+    <div className="mb-2 flex items-start justify-between gap-2">
+      <div>
+        <h1 className="font-serif text-3xl text-ink">{greeting}</h1>
+        {settings.journalName && <p className="hint mt-1">{settings.journalName}</p>}
+      </div>
+      <div className="flex">
+        <HelpButton id="home" />
+        <SearchButton />
+      </div>
     </div>
   )
 }
@@ -115,6 +124,7 @@ export function Home() {
   const life = (
     <>
       {prefs.showIdeas && <TodayIdea today={today} lifeLog={lifeLog} prominent={lifeFirst} />}
+      <HabitsToday today={today} />
       {lifeFirst && (
         <section className="card" aria-labelledby="plans-title">
           <div className="flex items-center justify-between gap-2">
@@ -170,7 +180,19 @@ export function Home() {
 
   return (
     <div className="space-y-4">
-      {lifeFirst ? <Greeting settings={settings} /> : <h1 className="sr-only">{t('Home')}</h1>}
+      {lifeFirst ? (
+        <Greeting settings={settings} />
+      ) : (
+        <div className="-mb-2 flex items-center justify-between">
+          <h1 className="sr-only">{t('Home')}</h1>
+          <span aria-hidden="true" />
+          <div className="flex">
+            <HelpButton id="home" />
+            <SearchButton />
+          </div>
+        </div>
+      )}
+      <HelpNote id="home" />
 
       <HomeNotices today={today} readyLetters={readyLetters} preferences={prefs} settings={settings} hasAnyData={hasAnyData} stage={stage} />
 
@@ -221,6 +243,9 @@ export function Home() {
         </Link>
         <Link to="/patterns" className="link">
           {t('See patterns')}
+        </Link>
+        <Link to="/help" className="link">
+          {t('Help')}
         </Link>
       </nav>
 

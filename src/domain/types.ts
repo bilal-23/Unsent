@@ -10,6 +10,9 @@
  * - Tracker: optional extra trackers beside no contact (same no-failure framing)
  * - ExerciseEntry: guided-program days and standalone exercises
  * - VoiceNote: spoken unsent messages; Photo: optional picture on a good thing
+ * - Plan.position: manual ordering of plans (lower comes first)
+ * - Habit / HabitLog: habits with a weekly goal ("gym 3× a week"), one log per day done — no streaks
+ * - TrashEntry: "Recently deleted" — a deleted record kept for 30 days so it can be restored
  *
  * Conventions: ids are crypto.randomUUID(); timestamps (`…At`) are ISO-8601 UTC;
  * calendar dates are local `YYYY-MM-DD` strings and are never parsed via `new Date(str)`.
@@ -101,6 +104,8 @@ export interface Plan {
   text: string
   status: PlanStatus
   doneAt?: IsoTimestamp
+  /** Manual order; lower comes first. */
+  position: number
   createdAt: IsoTimestamp
   updatedAt: IsoTimestamp
 }
@@ -160,6 +165,58 @@ export interface VoiceNote {
   updatedAt: IsoTimestamp
 }
 
+export interface Habit {
+  id: string
+  name: string
+  /** Weekly goal: days per week (1–7). */
+  targetPerWeek: number
+  position: number
+  archived: boolean
+  createdAt: IsoTimestamp
+  updatedAt: IsoTimestamp
+}
+
+/** "Did it" on a given local day. One per habit per day; un-ticking deletes it. */
+export interface HabitLog {
+  id: string
+  habitId: string
+  localDate: LocalDate
+  createdAt: IsoTimestamp
+}
+
+/** Tables whose records go to "Recently deleted" instead of disappearing immediately. */
+export type TrashableTable =
+  | 'messages'
+  | 'urges'
+  | 'checkIns'
+  | 'plans'
+  | 'lifeLog'
+  | 'voiceNotes'
+  | 'exerciseEntries'
+  | 'trackers'
+  | 'personalItems'
+  | 'habits'
+
+export interface TrashRecordMap {
+  messages: UnsentMessage
+  urges: UrgeEntry
+  checkIns: DailyCheckIn
+  plans: Plan
+  lifeLog: LifeLogEntry
+  voiceNotes: VoiceNote
+  exerciseEntries: ExerciseEntry
+  trackers: Tracker
+  personalItems: PersonalItem
+  habits: Habit
+}
+
+/** A deleted record, kept for {@link TRASH_RETENTION_DAYS} days. Not included in backups. */
+export type TrashEntry = {
+  [K in TrashableTable]: { id: string; table: K; recordId: string; record: TrashRecordMap[K]; deletedAt: IsoTimestamp }
+}[TrashableTable]
+
+export const TRASH_RETENTION_DAYS = 30
+
 /** App-lock key material. Not user data: never exported. */
 export interface Keyring {
   id: typeof SINGLETON_ID
@@ -201,6 +258,8 @@ export interface Preferences {
   onThisDay: boolean
   /** App lock: lock after the app has been in the background this long. */
   autoLockMinutes: number
+  /** Use a system notification for the urge check-back when the app is in the background. */
+  notifyCheckBack: boolean
 }
 
 export const DEFAULT_PREFERENCES: Preferences = {
@@ -219,6 +278,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   readingFont: 'serif',
   onThisDay: false,
   autoLockMinutes: 5,
+  notifyCheckBack: false,
 }
 
 /** Fills in any preference missing from storage or an older backup. */

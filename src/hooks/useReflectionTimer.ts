@@ -51,6 +51,7 @@ export function useReflectionTimer() {
 
   return {
     pendingUrgeId: state?.urgeId ?? null,
+    dueAt: state?.dueAt ?? null,
     isDue: !!state && now >= state.dueAt,
     minutesLeft: state ? Math.max(0, Math.ceil((state.dueAt - now) / 60_000)) : 0,
     dismiss,

@@ -8,7 +8,7 @@ import { SupportNote } from '../../components/SupportNote'
 import { useToast } from '../../components/Toaster'
 import { daysBetween, formatLocalDate, formatTimestamp, localDateOf } from '../../domain/dates'
 import type { Preferences } from '../../domain/types'
-import { usePreferences, useSettings } from '../../hooks/useData'
+import { usePreferences, useSettings, useTrashCount } from '../../hooks/useData'
 import { isIosBrowserTab, isStandalone, useInstallPrompt } from '../../hooks/useInstall'
 import { useToday } from '../../hooks/useToday'
 import { t, tp } from '../../i18n'
@@ -185,6 +185,7 @@ export function Settings() {
   const [confirmClear, setConfirmClear] = useState(false)
   const [journalName, setJournalName] = useState<string | null>(null)
   const { refresh: refreshLock } = useLock()
+  const trashCount = useTrashCount()
 
   useEffect(() => {
     if (!location.hash) return
@@ -196,7 +197,7 @@ export function Settings() {
 
   return (
     <div className="space-y-4">
-      <PageHeader title={t('Settings')} />
+      <PageHeader title={t('Settings')} helpId="settings" />
 
       <Section title={t('No contact')}>
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -285,6 +286,10 @@ export function Settings() {
           />
         )}
         <Choice label={t('Pause length')} value={preferences.pauseSeconds} options={[[60, t('60 seconds')], [90, t('90 seconds')]]} onChange={(v) => set({ pauseSeconds: v })} />
+        <Link to="/reminders" className="btn-secondary w-full justify-between sm:w-auto">
+          <span>{t('Calendar reminders and notifications')}</span>
+          <Icon name="back" className="size-4 rotate-180 rtl:rotate-0" />
+        </Link>
       </Section>
 
       <Section title={t('Appearance')}>
@@ -325,6 +330,10 @@ export function Settings() {
 
       <Section title={t('Delete data')}>
         <p className="hint">{t('Delete individual entries from their own screens, or remove everything here.')}</p>
+        <Link to="/deleted" className="btn-secondary w-full justify-between sm:w-auto">
+          <span>{t('Recently deleted')}</span>
+          {!!trashCount && <span className="text-xs text-muted tabular-nums">{trashCount}</span>}
+        </Link>
         <button type="button" className="btn-danger" onClick={() => setConfirmClear(true)}>
           {t('Delete all data on this device')}
         </button>
@@ -334,9 +343,14 @@ export function Settings() {
         <p className="text-sm">
           Unsent {__APP_VERSION__} · {t('No account. No server. No tracking.')}
         </p>
-        <Link to="/patterns" className="link inline-block text-sm">
-          {t('See patterns')}
-        </Link>
+        <div className="flex flex-wrap gap-x-5 gap-y-1 text-sm">
+          <Link to="/help" className="link">
+            {t('Help: what each feature does')}
+          </Link>
+          <Link to="/patterns" className="link">
+            {t('See patterns')}
+          </Link>
+        </div>
         <SupportNote />
       </Section>
 
@@ -359,7 +373,7 @@ export function Settings() {
           navigate('/welcome', { replace: true })
         }}
       >
-        <p>{t('Every message, urge, check-in, plan and setting stored in Unsent on this device will be permanently deleted. This cannot be undone.')}</p>
+        <p>{t('Every message, urge, check-in, plan and setting stored in Unsent on this device — including Recently deleted — will be permanently deleted. This cannot be undone.')}</p>
         <p>{t('Backup files you have already downloaded are not affected — they stay wherever you saved them.')}</p>
       </ConfirmDialog>
     </div>

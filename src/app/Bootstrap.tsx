@@ -17,6 +17,8 @@ export function Bootstrap({ repos, children }: { repos: Repos; children: ReactNo
     repos.connection
       .open()
       .then(() => repos.lock.init())
+      // Housekeeping: drop "Recently deleted" entries past their 30 days. Never blocks startup.
+      .then(() => repos.trash.purgeExpired().catch(() => {}))
       .then(() => !cancelled && setState({ kind: 'ready' }))
       .catch((error: unknown) => {
         if (cancelled) return

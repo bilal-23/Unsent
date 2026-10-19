@@ -24,7 +24,7 @@ export function Patterns() {
 
   return (
     <div>
-      <PageHeader title={t('Patterns')} back="/" subtitle={t('A quiet look at your own entries. No scores, no predictions.')} />
+      <PageHeader title={t('Patterns')} back="/" helpId="patterns" subtitle={t('A quiet look at your own entries. No scores, no predictions.')} />
 
       <div role="radiogroup" aria-label={t('Period')} className="mb-5 flex gap-1 rounded-xl bg-surface-2 p-1">
         {(Object.keys(PERIOD_LABELS) as PatternPeriod[]).map((value) => (

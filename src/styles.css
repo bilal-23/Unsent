@@ -205,3 +205,11 @@ html.privacy-cover .privacy-cover-overlay {
 .safe-bottom {
   padding-bottom: env(safe-area-inset-bottom);
 }
+
+/* Horizontally scrolling chip rows: scrollable, without a visible scrollbar. */
+.scroll-row {
+  scrollbar-width: none;
+}
+.scroll-row::-webkit-scrollbar {
+  display: none;
+}

@@ -1,6 +1,8 @@
 import type {
   DailyCheckIn,
   ExerciseEntry,
+  Habit,
+  HabitLog,
   LifeLogEntry,
   PersonalItem,
   Plan,
@@ -30,6 +32,8 @@ export interface BackupData {
   trackers: Tracker[]
   exerciseEntries: ExerciseEntry[]
   voiceNotes: VoiceNote[]
+  habits: Habit[]
+  habitLogs: HabitLog[]
 }
 
 /** Everything currently stored on this device. */
@@ -46,9 +50,11 @@ export interface LocalSnapshot {
   trackers: Tracker[]
   exerciseEntries: ExerciseEntry[]
   voiceNotes: VoiceNote[]
+  habits: Habit[]
+  habitLogs: HabitLog[]
 }
 
-export const COLLECTIONS = ['messages', 'urges', 'checkIns', 'trackingHistory', 'personalItems', 'plans', 'lifeLog', 'trackers', 'exerciseEntries', 'voiceNotes'] as const
+export const COLLECTIONS = ['messages', 'urges', 'checkIns', 'trackingHistory', 'personalItems', 'plans', 'lifeLog', 'trackers', 'exerciseEntries', 'voiceNotes', 'habits', 'habitLogs'] as const
 export type Collection = (typeof COLLECTIONS)[number]
 
 export const COLLECTION_LABELS: Record<Collection, string> = {
@@ -62,6 +68,8 @@ export const COLLECTION_LABELS: Record<Collection, string> = {
   trackers: 'Other trackers',
   exerciseEntries: 'Exercises and program days',
   voiceNotes: 'Voice notes',
+  habits: 'Habits',
+  habitLogs: 'Habit check-offs',
 }
 
 export interface MergeCounts {
@@ -86,6 +94,8 @@ export interface MergePlan {
     trackers: Tracker[]
     exerciseEntries: ExerciseEntry[]
     voiceNotes: VoiceNote[]
+    habits: Habit[]
+    habitLogs: HabitLog[]
   }
   deleteCheckInIds: string[]
   summary: MergeSummary
@@ -103,6 +113,8 @@ export function countRecords(data: BackupData | LocalSnapshot): Record<Collectio
     trackers: data.trackers.length,
     exerciseEntries: data.exerciseEntries.length,
     voiceNotes: data.voiceNotes.length,
+    habits: data.habits.length,
+    habitLogs: data.habitLogs.length,
   }
 }
 
@@ -139,6 +151,7 @@ function mergeById<T extends { id: string; updatedAt: string }>(local: T[], inco
  * - Check-ins are unique per local date: on a date collision with a different id,
  *   the newer check-in wins and the other is removed.
  * - Settings: newer wins. Preferences: local wins (only filled in if missing).
+ * - Habit check-offs are a union (one per habit per day).
  * Records are never duplicated: every write is keyed by the incoming record's id.
  */
 export function planMerge(local: LocalSnapshot, incoming: BackupData): MergePlan {
@@ -154,9 +167,11 @@ export function planMerge(local: LocalSnapshot, incoming: BackupData): MergePlan
     trackers: emptyCounts(),
     exerciseEntries: emptyCounts(),
     voiceNotes: emptyCounts(),
+    habits: emptyCounts(),
+    habitLogs: emptyCounts(),
   }
   const plan: MergePlan = {
-    put: { trackingHistory: [], messages: [], urges: [], checkIns: [], personalItems: [], plans: [], lifeLog: [], trackers: [], exerciseEntries: [], voiceNotes: [] },
+    put: { trackingHistory: [], messages: [], urges: [], checkIns: [], personalItems: [], plans: [], lifeLog: [], trackers: [], exerciseEntries: [], voiceNotes: [], habits: [], habitLogs: [] },
     deleteCheckInIds: [],
     summary,
   }
@@ -195,6 +210,21 @@ export function planMerge(local: LocalSnapshot, incoming: BackupData): MergePlan
   mergeById(local.trackers, incoming.trackers, summary.trackers, plan.put.trackers)
   mergeById(local.exerciseEntries, incoming.exerciseEntries, summary.exerciseEntries, plan.put.exerciseEntries)
   mergeById(local.voiceNotes, incoming.voiceNotes, summary.voiceNotes, plan.put.voiceNotes)
+  mergeById(local.habits, incoming.habits, summary.habits, plan.put.habits)
+
+  // Habit check-offs are a union: a day done on either device counts as done.
+  const localLogIds = new Set(local.habitLogs.map((log) => log.id))
+  const localLogDays = new Set(local.habitLogs.map((log) => `${log.habitId}|${log.localDate}`))
+  for (const log of incoming.habitLogs) {
+    const day = `${log.habitId}|${log.localDate}`
+    if (localLogIds.has(log.id) || localLogDays.has(day)) {
+      summary.habitLogs.unchanged++
+      continue
+    }
+    localLogDays.add(day)
+    summary.habitLogs.added++
+    plan.put.habitLogs.push(log)
+  }
 
   const localHistoryIds = new Set(local.trackingHistory.map((h) => h.id))
   for (const entry of incoming.trackingHistory) {

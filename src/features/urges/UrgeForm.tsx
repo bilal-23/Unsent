@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router'
 import { useRepos } from '../../app/repos'
 import { ChipPicker } from '../../components/ChipPicker'
-import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { Icon } from '../../components/Icon'
 import { PageHeader } from '../../components/PageHeader'
 import { PromptHelper } from '../../components/PromptHelper'
@@ -13,6 +12,7 @@ import { EMOTION_SUGGESTIONS, TRIGGER_SUGGESTIONS, URGE_MAX } from '../../domain
 import { formatTimestamp } from '../../domain/dates'
 import type { UrgeEntry } from '../../domain/types'
 import { usePreferences, useUrge } from '../../hooks/useData'
+import { useDeleteWithUndo } from '../../hooks/useDeleteWithUndo'
 import { clearReflectionTimer } from '../../hooks/useReflectionTimer'
 import { t } from '../../i18n'
 import { AfterUrgePanel } from './AfterUrgePanel'
@@ -34,6 +34,7 @@ function UrgeFormBody({ id, initial }: { id: string; initial: UrgeEntry | undefi
   const navigate = useNavigate()
   const toast = useToast()
   const preferences = usePreferences()
+  const deleteWithUndo = useDeleteWithUndo()
   const record = initial ? { value: initial } : undefined
 
   const [intensity, setIntensity] = useState<number | undefined>(initial?.intensity)
@@ -44,7 +45,6 @@ function UrgeFormBody({ id, initial }: { id: string; initial: UrgeEntry | undefi
   const [savedId, setSavedId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
-  const [confirmDelete, setConfirmDelete] = useState(false)
 
   if (savedId && preferences) {
     return <AfterUrgePanel urgeId={savedId} preferences={preferences} onDone={() => navigate('/urges')} />
@@ -80,7 +80,10 @@ function UrgeFormBody({ id, initial }: { id: string; initial: UrgeEntry | undefi
         subtitle={!isNew && record?.value ? formatTimestamp(record.value.createdAt) : t('Only the intensity is needed.')}
         actions={
           !isNew && (
-            <button type="button" className="btn-ghost px-2.5" aria-label={t('Delete')} onClick={() => setConfirmDelete(true)}>
+            <button type="button" className="btn-ghost px-2.5" aria-label={t('Delete')} onClick={async () => {
+                if (await deleteWithUndo(() => repos.urges.delete(id), t('Entry moved to Recently deleted.'))) navigate('/urges', { replace: true })
+              }}
+            >
               <Icon name="trash" />
             </button>
           )
@@ -147,21 +150,6 @@ function UrgeFormBody({ id, initial }: { id: string; initial: UrgeEntry | undefi
         </div>
       </form>
 
-      <ConfirmDialog
-        open={confirmDelete}
-        title={t('Delete this entry?')}
-        confirmLabel={t('Delete permanently')}
-        danger
-        onCancel={() => setConfirmDelete(false)}
-        onConfirm={async () => {
-          await repos.urges.delete(id)
-          setConfirmDelete(false)
-          toast(t('Entry deleted.'))
-          navigate('/urges', { replace: true })
-        }}
-      >
-        <p>{t('Only this entry will be removed. Nothing else changes.')}</p>
-      </ConfirmDialog>
     </div>
   )
 }

@@ -11,7 +11,7 @@ export function Programs() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title={t('Guided programs')} back="/" subtitle={t('Short readings and small exercises, at your own pace. No dates, no streaks.')} />
+      <PageHeader title={t('Guided programs')} back="/" helpId="programs" subtitle={t('Short readings and small exercises, at your own pace. No dates, no streaks.')} />
 
       {PROGRAMS.map((program) => {
         const days = programDays(program)

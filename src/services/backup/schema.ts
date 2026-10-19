@@ -6,7 +6,7 @@ import { isValidLocalDate } from '../../domain/dates'
 import { preferencesWithDefaults, SINGLETON_ID } from '../../domain/types'
 
 /** The backup format version written by this build. See docs/backup-format.md. */
-export const CURRENT_BACKUP_VERSION = 1
+export const CURRENT_BACKUP_VERSION = 2
 
 const MAX_LONG_TEXT = 1_000_000
 const MAX_SHORT_TEXT = 10_000
@@ -53,6 +53,7 @@ const preferencesShape = z.strictObject({
   readingFont: z.enum(['serif', 'sans']),
   onThisDay: z.boolean(),
   autoLockMinutes: z.number().int().min(0).max(1440),
+  notifyCheckBack: z.boolean(),
 })
 
 /** Every preference is optional in a backup; missing ones get today's defaults. */
@@ -118,6 +119,7 @@ export const planSchema = z.strictObject({
   text: z.string().min(1).max(1000),
   status: z.enum(['open', 'done']),
   doneAt: timestamp.optional(),
+  position: z.number().int(),
   createdAt: timestamp,
   updatedAt: timestamp,
 })
@@ -170,6 +172,23 @@ export const voiceNoteSchema = z.strictObject({
   updatedAt: timestamp,
 })
 
+export const habitSchema = z.strictObject({
+  id,
+  name: z.string().min(1).max(200),
+  targetPerWeek: z.number().int().min(1).max(7),
+  position: z.number().int(),
+  archived: z.boolean(),
+  createdAt: timestamp,
+  updatedAt: timestamp,
+})
+
+export const habitLogSchema = z.strictObject({
+  id,
+  habitId: id,
+  localDate,
+  createdAt: timestamp,
+})
+
 export const backupDataSchema = z.strictObject({
   settings: trackingSettingsSchema.nullable(),
   preferences: preferencesSchema.nullable(),
@@ -183,6 +202,9 @@ export const backupDataSchema = z.strictObject({
   trackers: z.array(trackerSchema),
   exerciseEntries: z.array(exerciseEntrySchema),
   voiceNotes: z.array(voiceNoteSchema),
+  // Default to empty: early version-2 files (before habits) are still valid.
+  habits: z.array(habitSchema).default([]),
+  habitLogs: z.array(habitLogSchema).default([]),
 }) satisfies z.ZodType<BackupData, unknown>
 
 /** Just enough to identify the file and its version, before migrating. */

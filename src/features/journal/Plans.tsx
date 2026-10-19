@@ -1,21 +1,21 @@
 import { useState } from 'react'
 import { useRepos } from '../../app/repos'
-import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { EmptyState } from '../../components/EmptyState'
 import { Icon } from '../../components/Icon'
-import { useToast } from '../../components/Toaster'
 import { formatTimestamp } from '../../domain/dates'
 import type { Plan } from '../../domain/types'
 import { usePlans } from '../../hooks/useData'
+import { useDeleteWithUndo } from '../../hooks/useDeleteWithUndo'
 import { t } from '../../i18n'
 
-function PlanRow({ plan, onDelete }: { plan: Plan; onDelete: () => void }) {
+function PlanRow({ plan, isFirst, isLast }: { plan: Plan; isFirst: boolean; isLast: boolean }) {
   const repos = useRepos()
+  const deleteWithUndo = useDeleteWithUndo()
   const [editing, setEditing] = useState(false)
   const [text, setText] = useState(plan.text)
   const done = plan.status === 'done'
   return (
-    <li className="card flex items-center gap-3 py-3">
+    <li className="card flex items-center gap-2 py-3 ps-3 pe-1.5">
       <button
         type="button"
         role="checkbox"
@@ -41,24 +41,59 @@ function PlanRow({ plan, onDelete }: { plan: Plan; onDelete: () => void }) {
           </button>
         </form>
       ) : (
-        <button type="button" className="min-w-0 flex-1 text-start" onClick={() => setEditing(true)}>
+        <button type="button" className="min-w-0 flex-1 text-start" onClick={() => setEditing(true)} aria-label={t('Edit "{text}"', { text: plan.text })}>
           <span className={done ? 'text-muted line-through' : 'text-ink'}>{plan.text}</span>
           {done && plan.doneAt && <span className="block text-xs text-muted">{t('Done {date}', { date: formatTimestamp(plan.doneAt, { dateStyle: 'medium' }) })}</span>}
         </button>
       )}
-      <button type="button" className="btn-ghost btn-sm px-2" aria-label={t('Delete plan')} onClick={onDelete}>
-        <Icon name="trash" className="size-4" />
-      </button>
+      {!editing && (
+        <div className="flex shrink-0 items-center">
+          <button
+            type="button"
+            className="btn-ghost btn-sm px-1.5"
+            aria-label={t('Move "{text}" up', { text: plan.text })}
+            disabled={isFirst}
+            onClick={() => void repos.plans.move(plan.id, -1)}
+          >
+            <Icon name="up" className="size-4" />
+          </button>
+          <button
+            type="button"
+            className="btn-ghost btn-sm px-1.5"
+            aria-label={t('Move "{text}" down', { text: plan.text })}
+            disabled={isLast}
+            onClick={() => void repos.plans.move(plan.id, 1)}
+          >
+            <Icon name="down" className="size-4" />
+          </button>
+          <button
+            type="button"
+            className="btn-ghost btn-sm px-1.5"
+            aria-label={t('Delete "{text}"', { text: plan.text })}
+            onClick={() => void deleteWithUndo(() => repos.plans.delete(plan.id), t('Plan moved to Recently deleted.'))}
+          >
+            <Icon name="trash" className="size-4" />
+          </button>
+        </div>
+      )}
     </li>
+  )
+}
+
+function PlanGroup({ plans }: { plans: Plan[] }) {
+  return (
+    <ul className="space-y-2">
+      {plans.map((plan, index) => (
+        <PlanRow key={plan.id} plan={plan} isFirst={index === 0} isLast={index === plans.length - 1} />
+      ))}
+    </ul>
   )
 }
 
 export function Plans() {
   const repos = useRepos()
-  const toast = useToast()
   const plans = usePlans()
   const [text, setText] = useState('')
-  const [toDelete, setToDelete] = useState<Plan | null>(null)
   const open = plans?.filter((p) => p.status === 'open') ?? []
   const done = plans?.filter((p) => p.status === 'done') ?? []
 
@@ -88,39 +123,15 @@ export function Plans() {
         <EmptyState message={t('A class, a trip, a hobby you put down. Plans are yours alone.')} />
       ) : (
         <>
-          {open.length > 0 && (
-            <ul className="space-y-2">
-              {open.map((plan) => (
-                <PlanRow key={plan.id} plan={plan} onDelete={() => setToDelete(plan)} />
-              ))}
-            </ul>
-          )}
+          {open.length > 0 && <PlanGroup plans={open} />}
           {done.length > 0 && (
             <section>
               <h2 className="section-title mb-2">{t('Done')}</h2>
-              <ul className="space-y-2">
-                {done.map((plan) => (
-                  <PlanRow key={plan.id} plan={plan} onDelete={() => setToDelete(plan)} />
-                ))}
-              </ul>
+              <PlanGroup plans={done} />
             </section>
           )}
         </>
       )}
-      <ConfirmDialog
-        open={!!toDelete}
-        title={t('Delete this plan?')}
-        confirmLabel={t('Delete')}
-        danger
-        onCancel={() => setToDelete(null)}
-        onConfirm={async () => {
-          if (toDelete) await repos.plans.delete(toDelete.id)
-          setToDelete(null)
-          toast(t('Plan deleted.'))
-        }}
-      >
-        <p>{t('It will be permanently removed from this device.')}</p>
-      </ConfirmDialog>
     </div>
   )
 }

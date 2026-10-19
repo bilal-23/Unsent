@@ -50,11 +50,15 @@ function duplicateProblems(data: BackupData): string[] {
     ['trackers', data.trackers],
     ['exerciseEntries', data.exerciseEntries],
     ['voiceNotes', data.voiceNotes],
+    ['habits', data.habits],
+    ['habitLogs', data.habitLogs],
   ]
   for (const [name, records] of collections) {
     const duplicates = findDuplicates(records.map((r) => r.id))
     if (duplicates.length) problems.push(`${name}: ${duplicates.length} duplicate id(s), e.g. ${duplicates[0]}`)
   }
+  const habitDays = findDuplicates(data.habitLogs.map((log) => `${log.habitId} ${log.localDate}`))
+  if (habitDays.length) problems.push(`habitLogs: ${habitDays.length} habit day(s) logged twice`)
   const dates = findDuplicates(data.checkIns.map((c) => c.localDate))
   if (dates.length) problems.push(`checkIns: more than one check-in for ${dates.slice(0, 3).join(', ')}`)
   return problems

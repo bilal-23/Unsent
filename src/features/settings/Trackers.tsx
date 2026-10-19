@@ -8,6 +8,7 @@ import { useToast } from '../../components/Toaster'
 import { daysBetween, formatLocalDate, intentionStatus, isValidLocalDate, noContactStatus } from '../../domain/dates'
 import type { Tracker } from '../../domain/types'
 import { useTrackers } from '../../hooks/useData'
+import { useDeleteWithUndo } from '../../hooks/useDeleteWithUndo'
 import { useToday } from '../../hooks/useToday'
 import { t, tp } from '../../i18n'
 import { IntentionPicker } from '../dashboard/IntentionPicker'
@@ -75,12 +76,13 @@ export function Trackers() {
   const trackers = useTrackers()
   const [editing, setEditing] = useState<Tracker | 'new' | null>(null)
   const [restart, setRestart] = useState<Tracker | null>(null)
-  const [toDelete, setToDelete] = useState<Tracker | null>(null)
+  const deleteWithUndo = useDeleteWithUndo()
 
   return (
     <div>
       <PageHeader
         title={t('Other trackers')}
+        helpId="trackers"
         back="/settings"
         subtitle={t('Optional. For other habits you are changing alongside no contact.')}
         actions={
@@ -119,7 +121,11 @@ export function Trackers() {
                   <button type="button" className="link" onClick={() => void repos.trackers.update(tracker.id, { archived: !tracker.archived })}>
                     {tracker.archived ? t('Show on Home') : t('Hide from Home')}
                   </button>
-                  <button type="button" className="link" onClick={() => setToDelete(tracker)}>
+                  <button
+                    type="button"
+                    className="link"
+                    onClick={() => void deleteWithUndo(() => repos.trackers.delete(tracker.id), t('Tracker moved to Recently deleted.'))}
+                  >
                     {t('Delete')}
                   </button>
                 </div>
@@ -141,19 +147,6 @@ export function Trackers() {
         }}
       >
         <p>{t('That is okay. Starting again is part of changing a habit.')}</p>
-      </ConfirmDialog>
-      <ConfirmDialog
-        open={!!toDelete}
-        title={t('Delete this tracker?')}
-        confirmLabel={t('Delete')}
-        danger
-        onCancel={() => setToDelete(null)}
-        onConfirm={async () => {
-          if (toDelete) await repos.trackers.delete(toDelete.id)
-          setToDelete(null)
-        }}
-      >
-        <p>{t('It will be permanently removed from this device.')}</p>
       </ConfirmDialog>
     </div>
   )
